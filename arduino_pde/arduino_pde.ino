@@ -18,42 +18,15 @@
 char field_separator = ',';
 char command_separator = ';';
 Servo myservo;
+int numServos = 2;
+int pins[2];
+int targets[2];
+float velocities[2];
+float positions[2];
+
 
 // Attach a new CmdMessenger object to the default Serial port
 CmdMessenger cmdMessenger = CmdMessenger(Serial, field_separator, command_separator);
-
-
-// ------------------ S E R I A L  M O N I T O R -----------------------------
-// 
-// Try typing these command messages in the serial monitor!
-// 
-// 4,hi,heh,ho!;
-// 5;
-// 5,dGhlIGJlYXJzIGFyZSBhbGxyaWdodA==;
-// 5,dGhvc2UgbmFzdHkgY29udHJvbCA7OyBjaGFyYWN0ZXJzICws==;
-// 2;
-// 6;
-// 
-// 
-// Expected output:
-// 
-// 1,Arduino ready;
-// 1,bens cmd recieved;
-// 1,hi;
-// 1,heh;
-// 1,ho!;
-// 1,jerrys cmd recieved;
-// 1,"the bears are allright" encoded in base64...;
-// 1,dGhlIGJlYXJzIGFyZSBhbGxyaWdodA==;
-// 1,jerrys cmd recieved;
-// 1,what you send me, decoded base64...;
-// 1,the bears are allright;
-// 1,jerrys cmd recieved;
-// 1,what you send me, decoded base64...;
-// 1,those nasty control ;; characters ,,;
-// 1,Arduino ready;
-// 3,Unknown command;
-// 
 
 
 // ------------------ C M D  L I S T I N G ( T X / R X ) ---------------------
@@ -83,7 +56,8 @@ enum
 // They start at the address kSEND_CMDS_END defined ^^ above as 004
 messengerCallbackFunction messengerCallbacks[] = 
 {
-  setServoPos,         // 004
+  setServoVelocity,         // 004
+  signalResetPositions,
   NULL
 };
 // Its also possible (above ^^) to implement some symetric commands, when both the Arduino and
@@ -93,16 +67,39 @@ messengerCallbackFunction messengerCallbacks[] =
 
 // ------------------ C A L L B A C K  M E T H O D S -------------------------
 
-void setServoPos()
+
+/**
+*Reads in bits of information, computes a velocity, and sets that
+*Servo's velocity to the derived value
+**/
+void setServoVelocity()
 {
-   cmdMessenger.sendCmd(kACK, "setServoPos received");
    char buf[350] = { '\0' };
    cmdMessenger.copyString(buf, 350);
-   int pin = atoi(buf);
+   if(buf[0] == '\0') cmdMessenger.sendCmd(kERR, "");
+   int s = atoi(buf);
    cmdMessenger.copyString(buf, 350);
+   if(buf[0] == '\0') cmdMessenger.sendCmd(kERR, "");
    int theta = atoi(buf);
-   myservo.attach(pin);
-   myservo.write(theta);
+   cmdMessenger.copyString(buf, 350);
+   if(buf[0] == '\0') cmdMessenger.sendCmd(kERR, "");
+   int time = atoi(buf);
+   velocities[s] = theta/time;
+   targets[s] = theta;
+   String responseString = "";
+   responseString += s;
+   responseString += ",";
+   responseString += theta;
+   responseString += ",";
+   responseString += time;
+   char charBuf[5];
+   cmdMessenger.sendCmd(kACK, responseString.toCharArray(charBuf, 5));
+}
+
+void signalResetPositions()
+{
+ resetPositions();
+cmdMessenger.sendCmd(kACK, ""); 
 }
 
 // ------------------ D E F A U L T  C A L L B A C K S -----------------------
@@ -136,6 +133,14 @@ void attach_callbacks(messengerCallbackFunction* callbacks)
   }
 }
 
+void resetPositions()
+{
+ for(int i = 0; i < numServos; i++)
+{
+ positions[i] = 0.0;
+}
+}
+
 void setup() 
 {
   // Listen on serial connection for messages from the pc
@@ -153,6 +158,7 @@ void setup()
   attach_callbacks(messengerCallbacks);
 
   arduino_ready();
+  resetPositions();
 }
 
 
