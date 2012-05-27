@@ -1,3 +1,4 @@
-__all__ = ['constants']
+__all__ = ['constants', 'genotype']
 
 from constants import *
+from genotype import *
