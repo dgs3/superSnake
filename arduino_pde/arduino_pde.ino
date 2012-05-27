@@ -1,4 +1,3 @@
-#include <SimpleTimer.h>
 
 #include <Servo.h>
 
@@ -22,12 +21,7 @@ char command_separator = ';';
 Servo myServo;
 int numServos = 2;
 int pins[] = {3,5,6,9,10,11};
-int targets[2];
-float velocities[2];
-float positions[2];
-
-SimpleTimer timer;
-int timeout = 100; //ms
+int positions[2];
 
 // Attach a new CmdMessenger object to the default Serial port
 CmdMessenger cmdMessenger = CmdMessenger(Serial, field_separator, command_separator);
@@ -60,10 +54,8 @@ enum
 // They start at the address kSEND_CMDS_END defined ^^ above as 004
 messengerCallbackFunction messengerCallbacks[] = 
 {
-  setServoVelocity,         // 004
+  setServoPosition,         // 004
   getPosition,              // 005
-  setPosition,              // 006
-  moveServos,               // 007
   NULL
 };
 // Its also possible (above ^^) to implement some symetric commands, when both the Arduino and
@@ -73,59 +65,39 @@ messengerCallbackFunction messengerCallbacks[] =
 
 // ------------------ C A L L B A C K  M E T H O D S -------------------------
 
-
 /**
- *Reads in bits of information, computes a velocity, and sets that
- *Servo's velocity to the derived value
+ *Drives a certain servo to a certain position
  *INPUT:
- *First Value: Servo velocity to set
- *Second Value: Angle
- *Third Value: Time the move should take
- *OUTPUT:
- *none
+ *First Valuee: Servo to set
+ *Second Value: Angle to set it to
  **/
-void setServoVelocity()
+void setServoPosition()
 {
-  String response   = "";
-  //Get the first value
-  char buf[350] = {'\0'};
-  cmdMessenger.copyString(buf, 350);
-  if(buf[0] == '\0')
+ String response = "";
+ char buf[350] = {'\0'};
+ cmdMessenger.copyString(buf, 350);
+ if(buf[0] == '\0')
   {
-    cmdMessenger.sendCmd(kERR, "");
-    return;
+     cmdMessenger.sendCmd(kERR, "");
+     return;
   }
-  response+=buf;
-  response+= ",";
+  respoonse += buf;
+  response += ",";
   int s = atoi(buf);
-  //Get the second value
   cmdMessenger.copyString(buf, 350);
   if(buf[0] == '\0')
-  {
-    cmdMessenger.sendCmd(kERR, "");
-    return;
-  }
-  response+=buf;
-  response+=",";
-  int theta = atoi(buf);
-  //Get the third value
-  cmdMessenger.copyString(buf, 350);
-  if(buf[0] == '\0')
-  {
-    cmdMessenger.sendCmd(kERR, "");
-    return;
-  }
-  response += buf;
-  response += ',';
-  int time = atoi(buf);
-  int dif = theta - positions[s];
-  velocities[s] = dif/time;
-  targets[s] = theta;
-  response += String(theta/time);
-  char responseChars[response.length()+1];
-  response.toCharArray(responseChars, response.length()+1);
-  cmdMessenger.sendCmd(kACK, responseChars);
+    {
+       cmdMessenger.sendCmd(kERR, "");
+       return; 
+    }
+   response += buf;
+   positions[s] = atoi(buf);
+   myServo.attach(pins[s]);
+   myServo.write(positions[s]);
+   cmdMessenger.sendCmd(kACK, response);
 }
+
+
 
 /**
  *Gets the position of a certain servo
@@ -155,55 +127,7 @@ void getPosition()
   cmdMessenger.sendCmd(kACK, responseChars);
 }
 
-/**
- *Sets the position of a certain servo to one value
- *INPUT:
- *First Value: Servo to change
- *Second Value: Position to set
- *OUTPUT:
- *None
- **/
-void setPosition()
-{
-  String response = "";
-  char buf[350] = { 
-    '\0'   };
-  //Get first value
-  cmdMessenger.copyString(buf, 350);
-  if(buf[0] == '\0')
-  {
-    cmdMessenger.sendCmd(kERR,"");
-    return;
-  }
-  response += buf;
-  response += ",";
-  int s = atoi(buf);
-  //Get second value
-  cmdMessenger.copyString(buf, 350);
-  if(buf[0] == '\0')
-  {
-    cmdMessenger.sendCmd(kERR,"");
-    return; 
-  }
-  response += buf; 
-  positions[s] = atoi(buf);
-  char responseChars[response.length()+1];
-  response.toCharArray(responseChars, response.length()+1);
-  cmdMessenger.sendCmd(kACK, responseChars);
-}
 
-/**
- *Moves all servos by their specified amount according to their velocity each ms
- **/
-void moveServos()
-{
-  for(int i = 0; i < numServos; i++)
-  {
-    myServo.attach(pins[i]);
-    positions[i] += velocities[i]*timeout;
-    myServo.write(positions[i]);
-  } 
-}
 
 // ------------------ D E F A U L T  C A L L B A C K S -----------------------
 
@@ -253,11 +177,7 @@ void setup()
   attach_callbacks(messengerCallbacks);
 
   arduino_ready();
-  for(int i = 0; i < numServos; i++)
-  {
-    positions[i] = 0;
-  }
-  timer.setInterval(timeout, moveServos);
+
 }
 
 
@@ -265,7 +185,6 @@ void loop()
 {
   // Process incoming serial data, if any
   cmdMessenger.feedinSerialData();
-  timer.run();
   // Loop.
 }
 
