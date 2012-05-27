@@ -6,8 +6,10 @@ errorDict = {
     }
 
 actionDict = {
-    "setServoPosition"    :   004,
-    "signalResetPosition" :   005,
+    "setServoVelocity"    :   004,
+    "getPosition"         :   005,
+    "setPosition"         :   006,
+    "moveServos"          :   007,
     }
 
 

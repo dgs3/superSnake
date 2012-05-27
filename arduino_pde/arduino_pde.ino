@@ -1,3 +1,5 @@
+#include <SimpleTimer.h>
+
 #include <Servo.h>
 
 // This example demonstrates CmdMessenger's callback  & attach methods
@@ -17,13 +19,15 @@
 // Mustnt conflict / collide with our message payload data. Fine if we use base64 library ^^ above
 char field_separator = ',';
 char command_separator = ';';
-Servo myservo;
+Servo myServo;
 int numServos = 2;
-int pins[2];
+int pins[] = {3,5,6,9,10,11};
 int targets[2];
 float velocities[2];
 float positions[2];
 
+SimpleTimer timer;
+int timeout = 100; //ms
 
 // Attach a new CmdMessenger object to the default Serial port
 CmdMessenger cmdMessenger = CmdMessenger(Serial, field_separator, command_separator);
@@ -57,7 +61,9 @@ enum
 messengerCallbackFunction messengerCallbacks[] = 
 {
   setServoVelocity,         // 004
-  signalResetPositions,
+  getPosition,              // 005
+  setPosition,              // 006
+  moveServos,               // 007
   NULL
 };
 // Its also possible (above ^^) to implement some symetric commands, when both the Arduino and
@@ -69,37 +75,134 @@ messengerCallbackFunction messengerCallbacks[] =
 
 
 /**
-*Reads in bits of information, computes a velocity, and sets that
-*Servo's velocity to the derived value
-**/
+ *Reads in bits of information, computes a velocity, and sets that
+ *Servo's velocity to the derived value
+ *INPUT:
+ *First Value: Servo velocity to set
+ *Second Value: Angle
+ *Third Value: Time the move should take
+ *OUTPUT:
+ *none
+ **/
 void setServoVelocity()
 {
-   char buf[350] = { '\0' };
-   cmdMessenger.copyString(buf, 350);
-   if(buf[0] == '\0') cmdMessenger.sendCmd(kERR, "");
-   int s = atoi(buf);
-   cmdMessenger.copyString(buf, 350);
-   if(buf[0] == '\0') cmdMessenger.sendCmd(kERR, "");
-   int theta = atoi(buf);
-   cmdMessenger.copyString(buf, 350);
-   if(buf[0] == '\0') cmdMessenger.sendCmd(kERR, "");
-   int time = atoi(buf);
-   velocities[s] = theta/time;
-   targets[s] = theta;
-   String responseString = "";
-   responseString += s;
-   responseString += ",";
-   responseString += theta;
-   responseString += ",";
-   responseString += time;
-   char charBuf[5];
-   cmdMessenger.sendCmd(kACK, responseString.toCharArray(charBuf, 5));
+  String response   = "";
+  //Get the first value
+  char buf[350] = {'\0'};
+  cmdMessenger.copyString(buf, 350);
+  if(buf[0] == '\0')
+  {
+    cmdMessenger.sendCmd(kERR, "");
+    return;
+  }
+  response+=buf;
+  response+= ",";
+  int s = atoi(buf);
+  //Get the second value
+  cmdMessenger.copyString(buf, 350);
+  if(buf[0] == '\0')
+  {
+    cmdMessenger.sendCmd(kERR, "");
+    return;
+  }
+  response+=buf;
+  response+=",";
+  int theta = atoi(buf);
+  //Get the third value
+  cmdMessenger.copyString(buf, 350);
+  if(buf[0] == '\0')
+  {
+    cmdMessenger.sendCmd(kERR, "");
+    return;
+  }
+  response += buf;
+  response += ',';
+  int time = atoi(buf);
+  int dif = theta - positions[s];
+  velocities[s] = dif/time;
+  targets[s] = theta;
+  response += String(theta/time);
+  char responseChars[response.length()+1];
+  response.toCharArray(responseChars, response.length()+1);
+  cmdMessenger.sendCmd(kACK, responseChars);
 }
 
-void signalResetPositions()
+/**
+ *Gets the position of a certain servo
+ *INPUT:
+ *First Value: Servo to query
+ *OUTPUT:
+ *First Value: Servo queried
+ *Second Value: The position of the servo
+ **/
+void getPosition()
 {
- resetPositions();
-cmdMessenger.sendCmd(kACK, ""); 
+  String response = "";
+  char buf[350] = { '\0'};
+  //Get first value
+  cmdMessenger.copyString(buf, 350);
+  if(buf[0] == '\0') 
+  {
+    cmdMessenger.sendCmd(kERR, "");
+    return;
+  }
+  response += buf;
+  response += ",";
+  int thePosition = positions[atoi(buf)];
+  response += String(thePosition);
+  char responseChars[response.length()+1];
+  response.toCharArray(responseChars, response.length()+1);
+  cmdMessenger.sendCmd(kACK, responseChars);
+}
+
+/**
+ *Sets the position of a certain servo to one value
+ *INPUT:
+ *First Value: Servo to change
+ *Second Value: Position to set
+ *OUTPUT:
+ *None
+ **/
+void setPosition()
+{
+  String response = "";
+  char buf[350] = { 
+    '\0'   };
+  //Get first value
+  cmdMessenger.copyString(buf, 350);
+  if(buf[0] == '\0')
+  {
+    cmdMessenger.sendCmd(kERR,"");
+    return;
+  }
+  response += buf;
+  response += ",";
+  int s = atoi(buf);
+  //Get second value
+  cmdMessenger.copyString(buf, 350);
+  if(buf[0] == '\0')
+  {
+    cmdMessenger.sendCmd(kERR,"");
+    return; 
+  }
+  response += buf; 
+  positions[s] = atoi(buf);
+  char responseChars[response.length()+1];
+  response.toCharArray(responseChars, response.length()+1);
+  cmdMessenger.sendCmd(kACK, responseChars);
+}
+
+/**
+ *Moves all servos by their specified amount according to their velocity each ms
+ **/
+void moveServos()
+{
+  for(int i = 0; i < numServos; i++)
+  {
+    myServo.attach(pins[i]);
+    positions[i] += velocities[i]*timeout;
+    myServo.write(positions[i]);
+  } 
 }
 
 // ------------------ D E F A U L T  C A L L B A C K S -----------------------
@@ -133,14 +236,6 @@ void attach_callbacks(messengerCallbackFunction* callbacks)
   }
 }
 
-void resetPositions()
-{
- for(int i = 0; i < numServos; i++)
-{
- positions[i] = 0.0;
-}
-}
-
 void setup() 
 {
   // Listen on serial connection for messages from the pc
@@ -149,7 +244,7 @@ void setup()
 
   // cmdMessenger.discard_LF_CR(); // Useful if your terminal appends CR/LF, and you wish to remove them
   cmdMessenger.print_LF_CR();   // Make output more readable whilst debugging in Arduino Serial Monitor
-  
+
   // Attach default / generic callback methods
   cmdMessenger.attach(kARDUINO_READY, arduino_ready);
   cmdMessenger.attach(unknownCmd);
@@ -158,39 +253,20 @@ void setup()
   attach_callbacks(messengerCallbacks);
 
   arduino_ready();
-  resetPositions();
+  for(int i = 0; i < numServos; i++)
+  {
+    positions[i] = 0;
+  }
+  timer.setInterval(timeout, moveServos);
 }
 
-
-// ------------------ M A I N ( ) --------------------------------------------
-
-// Timeout handling
-long timeoutInterval = 2000; // 2 seconds
-long previousMillis = 0;
-int counter = 0;
-
-void timeout()
-{
-  // blink
-  if (counter % 2)
-    digitalWrite(13, HIGH);
-  else
-    digitalWrite(13, LOW);
-  counter ++;
-}  
 
 void loop() 
 {
   // Process incoming serial data, if any
   cmdMessenger.feedinSerialData();
-
-  // handle timeout function, if any
-  if (  millis() - previousMillis > timeoutInterval )
-  {
-    timeout();
-    previousMillis = millis();
-  }
-
+  timer.run();
   // Loop.
 }
+
 
