@@ -9,11 +9,8 @@ The chromosomes are represented by a python dictionary.  Each servo is controlle
 
 '''
 First Angle To Move To
-Time Length To Move To In ms
-Time To Pause For At That Angle in ms
+Time To Pause For After That Command Is Sent
 Second Angle To Move To
-Time Length To Move To in ms
-Time To Pause For At That Angle in ms
 '''
 
 ##Crossover
@@ -27,8 +24,7 @@ In this case, crossover is done on a per-loci basis, where we look at each eleme
 Mutation is done in a straightforward manner, where a random number of values will be mutated.  Certain values will be clamped:
 '''
 Angles Are Clamped To 180 degrees
-Time Length To Move To is clamped to 2000 ms
-Time To Pause For is clamped to 2000 ms
+Time To Pause For is clamped to 5000 ms
 '''
 
 #Fitness Evaluation
@@ -54,6 +50,6 @@ Choose the one with the highest fitness
 #Talking to the Orobot 
 The Orobot is controlled by an Arduino microcontroller, and can be conversed with over a serial port at a baudrate of 115200.  There is essentially only one command it needs to understand, the setServoPosition command.  To give the Orobot a command:
 '''
-4,servo,theta,time;
+4,servo,theta;
 '''
-where 4 is the number of the command, servo is the servo we are going to move, theta is angle, and time is time we want to pause for. 
+where 4 is the number of the command, servo is the servo we are going to move and theta is angle.  We execute the bot's gate by Setting all servo positions.  Then we set a timer, and set the second position when the servo's timer is elapsed.  We dont start the next move until all second positions are sent.
