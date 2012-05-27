@@ -20,7 +20,7 @@ char field_separator = ',';
 char command_separator = ';';
 Servo myServo;
 int numServos = 2;
-int pins[] = {3,5,6,9,10,11};
+int pins[] = {9,10};
 int positions[2];
 
 // Attach a new CmdMessenger object to the default Serial port
@@ -81,7 +81,7 @@ void setServoPosition()
      cmdMessenger.sendCmd(kERR, "");
      return;
   }
-  respoonse += buf;
+  response += buf;
   response += ",";
   int s = atoi(buf);
   cmdMessenger.copyString(buf, 350);
@@ -94,7 +94,9 @@ void setServoPosition()
    positions[s] = atoi(buf);
    myServo.attach(pins[s]);
    myServo.write(positions[s]);
-   cmdMessenger.sendCmd(kACK, response);
+   char responseChars[response.length()+1];
+   response.toCharArray(responseChars, response.length()+1);
+   cmdMessenger.sendCmd(kACK, responseChars);
 }
 
 
