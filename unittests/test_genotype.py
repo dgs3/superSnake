@@ -12,20 +12,16 @@ import OroBot
 class GenotypeTest(unittest.TestCase):
 
   def setUp(self):
-    self.g = OroBot.Genotype()
+    self.g = OroBot.Genotype(2)
 
   def tearDown(self):
     self.g = None
 
   def test_mutate(self):
-    curChromosomes = copy.deepcopy(self.g.chromosomes)
+    chromosomes = copy.deepcopy(self.g.chromosomes)
+    self.assertEqual(chromosomes,self.g.chromosomes)
     self.g.mutate()
-    totalDifference = 0
-    for key in curChromosomes:
-      curSet = sets.Set(curChromosomes[key])
-      newSet = sets.Set(self.g.chromosomes[key])
-      totalDifference += len(newSet - curSet)
-    self.assertEqual(totalDifference, 1)
+    self.assertNotEqual(chromosomes, self.g.chromosomes)
 
   def test_cross_over_parent_has_no_genotype(self):
     p = OroBot.Genotype()
