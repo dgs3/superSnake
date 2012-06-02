@@ -38,3 +38,13 @@ class Chromosome(object):
   def copy(self):
     copyChrom = copy.deepcopy(self.chromosome)
     return Chromosome(copyChrom)
+
+  def randomize(self):
+    for key in self.chromosome:
+      for i in range(len(self.chromosome[key])):
+        self.chromosome[key][i] = random.randint(0, self.clampMap[key][i])
+
+  def maximize(self):
+    for key in self.chromosome:
+      for i in range(len(self.chromosome[key])):
+        self.chromosome[key][i] = self.clampMap[key][i]

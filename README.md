@@ -8,11 +8,10 @@ The genotype is used carry the genetic code.  It can also breed with other genot
 The chromosomes are represented by a python dictionary.  Each servo is controlled by an entry which is a list of 3 elements:
 
 '''
-First Angle To Move To
-Time To Pause For After That Command Is Sent
-Second Angle To Move To
+First Angle To Move To (0, 90, 180)
+Second Angle To Move To (0, 90, 180)
 '''
-Each of these chromosomes is coded by 3 loci to reduce the chance of a drastic movement from 180-0 (assuming a globally optimal position of 180 degrees, a mutation could change that chromosome to 0.  Instead, with 3 loci per chromosome, a mutation could only change a chromosome by 60 degrees total.)
+Having a reduced number of values for the GA to choose from limits the search space; since this is a physically embodied search this is paramount.  With two identical chromosomes, this brings the total number of chromosomes to 81 (3x3)(3x3).
 
 ##Crossover
 Crossover is used to breed with another genome.  It is modeled after biological reproduction; half of one genotype's chromosomes are combined with half of another genotype's chromosomes, forming a new genotype.

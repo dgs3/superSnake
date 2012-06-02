@@ -9,7 +9,7 @@ class Genotype(object):
 
   def __init__(self, numChromosomes):
     self.numChromosomes = numChromosomes
-    self.chromosomes = [Chromosome() for i in range(numChromosomes)]
+    self.chromosomes = [Chromosome().maximize() for i in range(numChromosomes)]
     self.fitness = 0
 
   def mutate(self):

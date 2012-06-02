@@ -68,5 +68,26 @@ class ChromosomeTest(unittest.TestCase):
       totalDifference += len(newSet - curSet)
     self.assertEqual(totalDifference, 1)
 
+  def test_maximize(self):
+    self.c.maximize()
+    for key in self.c.chromosome:
+      for i in range(len(self.c.chromosome[key])):
+        self.assertEqual(
+            self.c.chromosome[key][i],
+            self.c.clampMap[key][i],
+            )
+
+  def test_randomize(self):
+    curChrom = copy.deepcopy(self.c.chromosome)
+    self.c.randomize()
+    for key in self.c.chromosome:
+      for m, n in zip(self.c.chromosome[key], curChrom[key]):
+        self.assertNotEqual(m, n)
+    curChrom = copy.deepcopy(self.c.chromosome)
+    self.c.randomize()
+    for key in self.c.chromosome:
+      for m, n in zip(self.c.chromosome[key], curChrom[key]):
+        self.assertNotEqual(m, n)
+
 if __name__ == '__main__':
   unittest.main()

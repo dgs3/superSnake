@@ -90,6 +90,7 @@ class GenotypeTest(unittest.TestCase):
     for chromosome in child.chromosomes:
       for key in chromosome.chromosome:
         totalLoci += len(chromosome.chromosome[key])
+      print child.chromosomes[i].chromosome
     self.assertTrue(abs(fromG-fromP) <= 1)
 
 if __name__ == '__main__':
