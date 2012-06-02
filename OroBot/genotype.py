@@ -1,15 +1,17 @@
 from constants import *
 from chromosome import *
 from errors import *
-import time
 import random
-import serial 
+import copy
 
 class Genotype(object):
 
-  def __init__(self, numChromosomes):
+  def __init__(self, numChromosomes, newChromosomes=None):
     self.numChromosomes = numChromosomes
-    self.chromosomes = [Chromosome().maximize() for i in range(numChromosomes)]
+    if newChromosomes != None:
+      self.chromosomes = copy.deepcopy(newChromosomes)
+    else:
+      self.chromosomes = [Chromosome() for i in range(numChromosomes)]
     self.fitness = 0
 
   def mutate(self):
@@ -40,17 +42,12 @@ class Genotype(object):
         raise ConflictingChromosomeLengthError
       toAdd = {}
       for key in gChrom.chromosome:
-        if len(gChrom.chromosome[key]) != len(pChrom.chromosome[key]):
-          raise ConflictingChromosomeLengthError
-        toAdd[key] = []
-        for gVal, pVal in zip(
-              gChrom.chromosome[key], 
-              pChrom.chromosome[key]
-              ):
-          toAdd[key].append(random.choice([gVal, pVal]))
+        toAdd[key] = random.choice([
+            gChrom.chromosome[key], 
+            pChrom.chromosome[key]
+            ])
       newChromosomes.append(Chromosome(toAdd))
-    child = Genotype(self.numChromosomes)
-    child.chromosomes = newChromosomes
+    child = Genotype(self.numChromosomes, newChromosomes)
     return child
 
   def isEqual(self, p):

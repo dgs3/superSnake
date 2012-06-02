@@ -6,18 +6,13 @@ class Chromosome(object):
   def __init__(self, inChromosome = None):
     if inChromosome == None:
       self.chromosome = {
-          'theta_1'     :     [0, 0, 0],
-          'interval'    :     [0, 0, 0],
-          'theta_2'     :     [0, 0, 0], 
+          'theta_1'     :     0,
+          'theta_2'     :     0, 
           }
     else:
       self.chromosome = copy.deepcopy(inChromosome)
     self.fitness = 0
-    self.clampMap = {
-        'theta_1'     :     [60, 60, 60],
-        'interval'    :     [1000, 1000, 1000],
-        'theta_2'    :     [60, 60, 60], 
-        }
+    self.valueMap = [0, 90, 180]
 
   def mutate(self):
     """
@@ -25,12 +20,7 @@ class Chromosome(object):
     Uses the clampMap to get upper bounds
     """
     mutKey = random.choice(self.chromosome.keys())
-    loci = random.randint(
-        0, 
-        len(self.chromosome[mutKey])-1
-        )
-    self.chromosome[mutKey][loci] = random.randint(0, self.clampMap[mutKey][loci])
-
+    self.chromosome[mutKey] = random.choice(self.valueMap)
 
   def isEqual(self, p):
     return self.chromosome == p.chromosome
@@ -41,10 +31,4 @@ class Chromosome(object):
 
   def randomize(self):
     for key in self.chromosome:
-      for i in range(len(self.chromosome[key])):
-        self.chromosome[key][i] = random.randint(0, self.clampMap[key][i])
-
-  def maximize(self):
-    for key in self.chromosome:
-      for i in range(len(self.chromosome[key])):
-        self.chromosome[key][i] = self.clampMap[key][i]
+      self.chromosome[key] = random.choice(self.valueMap)

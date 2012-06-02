@@ -6,16 +6,23 @@ lib_path = os.path.abspath('../')
 sys.path.append(lib_path)
 
 import copy
+import mock
 import sets
 import OroBot
 
 class GenotypeTest(unittest.TestCase):
 
   def setUp(self):
+    reload(OroBot)
     self.g = OroBot.Genotype(2)
 
   def tearDown(self):
     self.g = None
+
+  def test_newChromosomes(self):
+    newChromosomes = ['asdf']
+    g = OroBot.Genotype(2, newChromosomes)
+    self.assertEqual(newChromosomes, g.chromosomes)
 
   def test_copy(self):
     copy = self.g.copy()
@@ -30,17 +37,11 @@ class GenotypeTest(unittest.TestCase):
     self.assertTrue(self.g.isEqual(p))
 
   def test_mutate(self):
-    copy = self.g.copy()
-    self.assertTrue(self.g.isEqual(copy))
-    self.g.mutate()
-    numDifferent = 0
-    for gChrom, pChrom in zip(
-        self.g.chromosomes,
-        copy.chromosomes,
-        ):
-      if not gChrom.isEqual(pChrom):
-        numDifferent += 1 
-    self.assertTrue(numDifferent == 1)
+    toMutate = OroBot.Genotype(1)
+    theMock = mock.Mock(OroBot.Chromosome)
+    toMutate.chromosomes[0] = theMock
+    toMutate.mutate()
+    theMock.mutate.assert_called_once_with()
 
   def test_cross_over_parent_has_no_chromosomes(self):
     p = OroBot.Genotype(2)
@@ -51,16 +52,11 @@ class GenotypeTest(unittest.TestCase):
     p = OroBot.Genotype(1)
     self.assertRaises(OroBot.ConflictingChromosomeLengthError, self.g.crossOver, p)
 
-  def test_cross_over_parent_short_chromosome(self):
-    p = OroBot.Genotype(2)
-    p.chromosomes[0].chromosome['theta_1'] = [0, 0]
-    self.assertRaises(OroBot.ConflictingChromosomeLengthError, self.g.crossOver, p)
 
   def test_cross_over_parent_missing_chromosomes(self):
     p = OroBot.Genotype(2)
     p.chromosomes[0].chromosome = {
-        'theta_1'     :     [0, 0, 0],
-        'theta_2'     :     [0, 0, 0],
+        'theta_1'     :     0,
         }
     self.assertRaises(OroBot.ConflictingChromosomeLengthError, self.g.crossOver, p)
 
@@ -68,29 +64,20 @@ class GenotypeTest(unittest.TestCase):
     p = OroBot.Genotype(2)
     for chromosome in p.chromosomes:
       chromosome.chromosome = {
-          'theta_1'     :     [60, 60, 60],
-          'interval'    :     [1000, 1000, 1000],
-          'theta_2'     :     [60, 60, 60],
+          'theta_1'     :     p.chromosomes[0].valueMap[-1],
+          'theta_2'     :     p.chromosomes[0].valueMap[-1],
           }
     child = self.g.crossOver(p)
     fromG = 0
     fromP = 0  
     for i in range(len(child.chromosomes)):
       for key in child.chromosomes[i].chromosome:
-        for j in range(
-            len(child.chromosomes[i].chromosome[key])
-            ):
-          if child.chromosomes[i].chromosome[key][j] == self.g.chromosomes[i].chromosome[key][j]:
+          if child.chromosomes[i].chromosome[key] == self.g.chromosomes[i].chromosome[key]:
             fromG += 1
-          elif child.chromosomes[i].chromosome[key][j] == p.chromosomes[i].chromosome[key][j]:
+          elif child.chromosomes[i].chromosome[key] == p.chromosomes[i].chromosome[key]:
             fromP += 1
           else:
             self.assertTrue(False)
-    totalLoci = 0
-    for chromosome in child.chromosomes:
-      for key in chromosome.chromosome:
-        totalLoci += len(chromosome.chromosome[key])
-      print child.chromosomes[i].chromosome
     self.assertTrue(abs(fromG-fromP) <= 1)
 
 if __name__ == '__main__':

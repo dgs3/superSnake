@@ -17,6 +17,14 @@ class ChromosomeTest(unittest.TestCase):
   def tearDown(self):
     self.c = None
 
+  def test_in_chromosome(self):
+    inChrom = {
+        'theta_1' : -1,
+        'theta_2' : -1,
+        }
+    chrom = OroBot.Chromosome(inChrom)
+    self.assertEqual(chrom.chromosome, inChrom)
+
   def test_copy(self):
     copyChrom = self.c.copy()
     self.assertTrue(copyChrom.isEqual(self.c))
@@ -29,29 +37,18 @@ class ChromosomeTest(unittest.TestCase):
   def test_is_equal_short_chromosome(self):
     p = OroBot.Chromosome()
     p.chromosome = {
-        'theta_1'   :   [0, 0, 0],
-        'interval'  :   [0, 0, 0],
+        'theta_1'   :   0
         }
-    self.assertFalse(self.c.isEqual(p))
-
-  def test_is_equal_short_loci(self):
-    p = OroBot.Chromosome()
-    p.chromosome['theta_1'] = [0, 0]
-    self.assertFalse(self.c.isEqual(p))
-
-  def test_is_equal_long_loci(self):
-    p = OroBot.Chromosome()
-    p.chromosome['theta_1'] = [0, 0, 0, 0]
     self.assertFalse(self.c.isEqual(p))
 
   def test_is_equal_extra_chromosome(self):
     p = OroBot.Chromosome()
-    p.chromosome['theta_3'] = [0, 0, 0]
+    p.chromosome['theta_3'] = 0
     self.assertFalse(self.c.isEqual(p))
 
   def test_is_equal_unequal_loci(self):
     p = OroBot.Chromosome()
-    p.chromosome['theta_1'] = [0, 0, 1]
+    p.chromosome['theta_1'] = 90
     self.assertFalse(self.c.isEqual(p))
 
   def test_is_equal(self):
@@ -63,31 +60,18 @@ class ChromosomeTest(unittest.TestCase):
     self.c.mutate()
     totalDifference = 0
     for key in curChromosome:
-      curSet = sets.Set(curChromosome[key])
-      newSet = sets.Set(self.c.chromosome[key])
-      totalDifference += len(newSet - curSet)
+      if curChromosome[key] != self.c.chromosome[key]:
+        totalDifference += 1
     self.assertEqual(totalDifference, 1)
-
-  def test_maximize(self):
-    self.c.maximize()
-    for key in self.c.chromosome:
-      for i in range(len(self.c.chromosome[key])):
-        self.assertEqual(
-            self.c.chromosome[key][i],
-            self.c.clampMap[key][i],
-            )
 
   def test_randomize(self):
     curChrom = copy.deepcopy(self.c.chromosome)
     self.c.randomize()
     for key in self.c.chromosome:
-      for m, n in zip(self.c.chromosome[key], curChrom[key]):
-        self.assertNotEqual(m, n)
-    curChrom = copy.deepcopy(self.c.chromosome)
-    self.c.randomize()
-    for key in self.c.chromosome:
-      for m, n in zip(self.c.chromosome[key], curChrom[key]):
-        self.assertNotEqual(m, n)
+        self.assertNotEqual(
+            self.c.chromosome[key], 
+            curChrom[key],
+            )
 
 if __name__ == '__main__':
   unittest.main()
