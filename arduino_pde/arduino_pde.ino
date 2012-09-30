@@ -19,9 +19,12 @@
 char field_separator = ',';
 char command_separator = ';';
 Servo myServo;
-int numServos = 2;
-int pins[] = {9,10};
-int positions[2];
+int numServos = 5;
+Servo servoObjs[5];
+int pins[5];
+int startPositions[5];
+int endPositions[5];
+int gateTime = 10000;
 
 // Attach a new CmdMessenger object to the default Serial port
 CmdMessenger cmdMessenger = CmdMessenger(Serial, field_separator, command_separator);
@@ -37,8 +40,8 @@ CmdMessenger cmdMessenger = CmdMessenger(Serial, field_separator, command_separa
 enum
 {
   kCOMM_ERROR    = 000, // Lets Arduino report serial port comm error back to the PC (only works for some comm errors)
-  kACK           = 001, // Arduino acknowledges cmd was received
-  kARDUINO_READY = 002, // After opening the comm port, send this cmd 02 from PC to check arduino is ready
+  kACK           = 001, // Reports acknowledgment of command
+  kARDUINO_READY = 002,
   kERR           = 003, // Arduino reports badly formatted cmd, or cmd not recognised
 
   // Now we can define many more 'send' commands, coming from the arduino -> the PC, eg
@@ -54,8 +57,10 @@ enum
 // They start at the address kSEND_CMDS_END defined ^^ above as 004
 messengerCallbackFunction messengerCallbacks[] = 
 {
-  setServoPosition,         // 004
-  getPosition,              // 005
+  setServoStartPosition,         // 004
+  setServoEndPosition,    // 005
+  getStartPosition,              // 006
+  getEndPosition,         // 007
   NULL
 };
 // Its also possible (above ^^) to implement some symetric commands, when both the Arduino and
@@ -66,12 +71,12 @@ messengerCallbackFunction messengerCallbacks[] =
 // ------------------ C A L L B A C K  M E T H O D S -------------------------
 
 /**
- *Drives a certain servo to a certain position
+ *Set the start position of a specific servo
  *INPUT:
  *First Valuee: Servo to set
- *Second Value: Angle to set it to
+ *Second Value: Servo Start Angle 
  **/
-void setServoPosition()
+void setServoStartPosition()
 {
  String response = "";
  char buf[350] = {'\0'};
@@ -91,25 +96,53 @@ void setServoPosition()
        return; 
     }
    response += buf;
-   positions[s] = atoi(buf);
-   myServo.attach(pins[s]);
-   myServo.write(positions[s]);
+   startPositions[s] = atoi(buf);
+   char responseChars[response.length()+1];
+   response.toCharArray(responseChars, response.length()+1);
+   cmdMessenger.sendCmd(kACK, responseChars);
+}
+
+ /**
+ *Set the end position of a specific servo
+ *INPUT:
+ *First Valuee: Servo to set
+ *Second Value: Servo End Angle 
+ **/
+void setServoEndPosition()
+{
+ String response = "";
+ char buf[350] = {'\0'};
+ cmdMessenger.copyString(buf, 350);
+ if(buf[0] == '\0')
+  {
+     cmdMessenger.sendCmd(kERR, "");
+     return;
+  }
+  response += buf;
+  response += ",";
+  int s = atoi(buf);
+  cmdMessenger.copyString(buf, 350);
+  if(buf[0] == '\0')
+    {
+       cmdMessenger.sendCmd(kERR, "");
+       return; 
+    }
+   response += buf;
+   endPositions[s] = atoi(buf);
    char responseChars[response.length()+1];
    response.toCharArray(responseChars, response.length()+1);
    cmdMessenger.sendCmd(kACK, responseChars);
 }
 
 
-
 /**
- *Gets the position of a certain servo
+ *Gets the start position of a certain servo
  *INPUT:
  *First Value: Servo to query
- *OUTPUT:
+ *OUTPUT: Start angle of the servo
  *First Value: Servo queried
- *Second Value: The position of the servo
  **/
-void getPosition()
+void getStartPosition()
 {
   String response = "";
   char buf[350] = { '\0'};
@@ -122,7 +155,34 @@ void getPosition()
   }
   response += buf;
   response += ",";
-  int thePosition = positions[atoi(buf)];
+  int thePosition = startPositions[atoi(buf)];
+  response += String(thePosition);
+  char responseChars[response.length()+1];
+  response.toCharArray(responseChars, response.length()+1);
+  cmdMessenger.sendCmd(kACK, responseChars);
+}
+
+/**
+ *Gets the end position of a certain servo
+ *INPUT:
+ *First Value: Servo to query
+ *OUTPUT: End angle of the servo
+ *First Value: Servo queried
+ **/
+void getEndPosition()
+{
+  String response = "";
+  char buf[350] = { '\0'};
+  //Get first value
+  cmdMessenger.copyString(buf, 350);
+  if(buf[0] == '\0') 
+  {
+    cmdMessenger.sendCmd(kERR, "");
+    return;
+  }
+  response += buf;
+  response += ",";
+  int thePosition = endPositions[atoi(buf)];
   response += String(thePosition);
   char responseChars[response.length()+1];
   response.toCharArray(responseChars, response.length()+1);
@@ -165,7 +225,6 @@ void attach_callbacks(messengerCallbackFunction* callbacks)
 void setup() 
 {
   // Listen on serial connection for messages from the pc
-  // Serial.begin(57600);  // Arduino Duemilanove, FTDI Serial
   Serial.begin(115200); // Arduino Uno, Mega, with AT8u2 USB
 
   // cmdMessenger.discard_LF_CR(); // Useful if your terminal appends CR/LF, and you wish to remove them
@@ -179,7 +238,13 @@ void setup()
   attach_callbacks(messengerCallbacks);
 
   arduino_ready();
-
+  for(int i = 0; i < numServos; ++i)
+  {
+    servoObjs[i].attach(pins[i]);
+    pins[i] = 13-i;
+    startPositions[i] = 0;
+    endPositions[i] = 0;
+  }
 }
 
 
@@ -187,7 +252,16 @@ void loop()
 {
   // Process incoming serial data, if any
   cmdMessenger.feedinSerialData();
-  // Loop.
+  // Loop
+  for(int i = 0; i < numServos; ++i)
+  {
+    servoObjs[i].write(startPositions[i]);
+  }
+  delay(gateTime);
+  for(int i = 0; i < numServos; ++i)
+  {
+    servoObjs[i].write(startPositions[i]);
+  }
 }
 
 
